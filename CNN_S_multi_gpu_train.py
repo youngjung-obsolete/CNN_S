@@ -68,7 +68,7 @@ def tower_loss( scope, dataset ):
 	images, labels = distorted_inputs( dataset )
 
 	# Build inference Graph.
-	logits = CNN_S.inference(images, dataset.num_classes())
+	logits, end_points = CNN_S.inference(images, dataset.num_classes())
 
 	# Build the portion of the Graph calculating the losses. Note that we will
 	# assemble the total_loss using a custom function below.
@@ -86,9 +86,9 @@ def tower_loss( scope, dataset ):
 		# Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
 		# session. This helps the clarity of presentation on tensorboard.
 		loss_name = re.sub('%s_[0-9]*/' % CNN_S.TOWER_NAME, '', l.op.name)
-		tf.scalar_summary(loss_name, l)
+		tf.summary.scalar(loss_name, l)
 
-	return total_loss
+	return total_loss 
 
 
 def average_gradients(tower_grads):
@@ -140,17 +140,26 @@ def train( dataset ):
 
 		# Calculate the learning rate schedule.
 		num_batches_per_epoch = (dataset.num_examples_per_epoch() / FLAGS.batch_size)
-		decay_steps = int(num_batches_per_epoch * FLAGS.num_epochs_per_decay)
+		decay_steps = int(num_batches_per_epoch * CNN_S.NUM_EPOCHS_PER_DECAY)
+		print( num_batches_per_epoch )
+		print( decay_steps )
 
 		# Decay the learning rate exponentially based on the number of steps.
 		lr = tf.train.exponential_decay(CNN_S.INITIAL_LEARNING_RATE,
-																		global_step,
-																		decay_steps,
-																		CNN_S.LEARNING_RATE_DECAY_FACTOR,
-																		staircase=True)
+												global_step,
+												decay_steps,
+												CNN_S.LEARNING_RATE_DECAY_FACTOR,
+												staircase=True)
 
 		# Create an optimizer that performs gradient descent.
 		opt = tf.train.GradientDescentOptimizer(lr)
+
+		# Start running operations on the Graph. allow_soft_placement must be set to
+		# True to build towers on GPU, as some of the ops do not have GPU
+		# implementations.
+		sess = tf.Session(config=tf.ConfigProto(
+				allow_soft_placement=True,
+				log_device_placement=FLAGS.log_device_placement))
 
 		# Calculate the gradients for each model tower.
 		tower_grads = []
@@ -161,6 +170,7 @@ def train( dataset ):
 					# constructs the entire CIFAR model but shares the variables across
 					# all towers.
 					loss = tower_loss(scope, dataset)
+					#print( sess.run( toPrint_labels[0] ) )
 
 					# Reuse variables for the next tower.
 					tf.get_variable_scope().reuse_variables()
@@ -179,13 +189,13 @@ def train( dataset ):
 		grads = average_gradients(tower_grads)
 
 		# Add a summary to track the learning rate.
-		summaries.append(tf.scalar_summary('learning_rate', lr))
+		summaries.append(tf.summary.scalar('learning_rate', lr))
 
 		# Add histograms for gradients.
 		for grad, var in grads:
 			if grad is not None:
 				summaries.append(
-						tf.histogram_summary(var.op.name + '/gradients',
+						tf.summary.histogram(var.op.name + '/gradients',
 																										grad))
 
 		# Apply the gradients to adjust the shared variables.
@@ -194,7 +204,7 @@ def train( dataset ):
 		# Add histograms for trainable variables.
 		for var in tf.trainable_variables():
 			summaries.append(
-					tf.histogram_summary(var.op.name, var))
+					tf.summary.histogram(var.op.name, var))
 
 		# Track the moving averages of all trainable variables.
 		variable_averages = tf.train.ExponentialMovingAverage(
@@ -208,17 +218,11 @@ def train( dataset ):
 		saver = tf.train.Saver(tf.global_variables())
 
 		# Build the summary operation from the last tower summaries.
-		summary_op = tf.merge_summary(summaries)
+		summary_op = tf.summary.merge(summaries)
 
 		# Build an initialization operation to run below.
 		init = tf.global_variables_initializer()
 
-		# Start running operations on the Graph. allow_soft_placement must be set to
-		# True to build towers on GPU, as some of the ops do not have GPU
-		# implementations.
-		sess = tf.Session(config=tf.ConfigProto(
-				allow_soft_placement=True,
-				log_device_placement=FLAGS.log_device_placement))
 		sess.run(init)
 
 		# Start the queue runners.

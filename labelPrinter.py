@@ -48,66 +48,28 @@ from imagenet_data import *
 FLAGS = tf.app.flags.FLAGS
 import flags
 
-def train( dataset ):
+def printLabels( dataset ):
 	"""Train CIFAR-10 for a number of steps."""
 	with tf.Graph().as_default():
 		global_step = tf.contrib.framework.get_or_create_global_step()
 
 		# Get images and labels for CIFAR-10.
 		images, labels = distorted_inputs( dataset )
+		out_labels = tf.identity( labels )
 
-		# Build a Graph that computes the logits predictions from the
-		# inference model.
-		logits, end_points = CNN_S.inference(images, dataset.num_classes() )
-
-		# Calculate loss.
-		loss = CNN_S.loss(logits, labels)
-
-		# Build a Graph that trains the model with one batch of examples and
-		# updates the model parameters.
-		train_op = CNN_S.train( loss, global_step, dataset )
-
-		class _LoggerHook(tf.train.SessionRunHook):
-			"""Logs loss and runtime."""
-
-			def begin(self):
-				self._step = -1
-
-			def before_run(self, run_context):
-				self._step += 1
-				self._start_time = time.time()
-				return tf.train.SessionRunArgs(loss)	# Asks for loss value.
-
-			def after_run(self, run_context, run_values):
-				duration = time.time() - self._start_time
-				loss_value = run_values.results
-				if self._step % 10 == 0:
-					num_examples_per_step = FLAGS.batch_size
-					examples_per_sec = num_examples_per_step / duration
-					sec_per_batch = float(duration)
-
-					format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
-												'sec/batch)')
-					print (format_str % (datetime.now(), self._step, loss_value,
-											 examples_per_sec, sec_per_batch))
-
-		with tf.train.MonitoredTrainingSession(
-				checkpoint_dir=FLAGS.train_dir,
-				hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
-							 tf.train.NanTensorHook(loss),
-							 _LoggerHook()],
-				config=tf.ConfigProto(
-						log_device_placement=FLAGS.log_device_placement)) as mon_sess:
-			while not mon_sess.should_stop():
-				mon_sess.run(train_op)
-
+	return images, labels
 
 def main(argv=None):	# pylint: disable=unused-argument
 	dataset= ImageNetData( subset=FLAGS.subset )
 	if tf.gfile.Exists(FLAGS.train_dir):
 		tf.gfile.DeleteRecursively(FLAGS.train_dir)
 	tf.gfile.MakeDirs(FLAGS.train_dir)
-	train( dataset )
+	images, labels = printLabels( dataset )
+
+	x = tf.placeholder( tf.float32 )
+	y = tf.placeholder( tf.int32 )
+	sess = tf.Session()
+	sess.run( labels ) 
 
 
 if __name__ == '__main__':

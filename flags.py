@@ -8,7 +8,7 @@ tf.app.flags.DEFINE_integer('max_steps', 1000000,
                             """Number of batches to run.""")
 
 # Flags governing the hardware employed for running TensorFlow.
-tf.app.flags.DEFINE_integer('num_gpus', 1,
+tf.app.flags.DEFINE_integer('num_gpus', 2,
                             """How many GPUs to use.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
@@ -32,18 +32,19 @@ tf.app.flags.DEFINE_string('pretrained_model_checkpoint_path', '',
 # With 8 Tesla K40's and a batch size = 256, the following setup achieves
 # precision@1 = 73.5% after 100 hours and 100K steps (20 epochs).
 # Learning rate decay factor selected from http://arxiv.org/abs/1404.5997.
-tf.app.flags.DEFINE_float('initial_learning_rate', 0.001,
-                          """Initial learning rate.""")
-tf.app.flags.DEFINE_float('num_epochs_per_decay', 30.0,
-                          """Epochs after which learning rate decays.""")
-tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.16,
-                          """Learning rate decay factor.""")
+#tf.app.flags.DEFINE_float('initial_learning_rate', 0.1,
+#                          """Initial learning rate.""")
+#tf.app.flags.DEFINE_float('num_epochs_per_decay', 30.0,
+#                          """Epochs after which learning rate decays.""")
+#tf.app.flags.DEFINE_float('learning_rate_decay_factor', 0.16,
+#                          """Learning rate decay factor.""")
+# These flags are not used. CNN_S.~~~ are used instead. // by Youngjung
 
 # Basic model parameters.
 tf.app.flags.DEFINE_integer('batch_size', 128,
 								"""Number of images to process in a batch.""")
 tf.app.flags.DEFINE_string('data_dir', '/home/cvpr-gb/hdd4TBmount/DataSet/ImageNet',
-								"""Path to the CIFAR-10 data directory.""")
+								"""Path to the ImageNet data directory.""")
 tf.app.flags.DEFINE_boolean('use_fp16', False,
 								"""Train the model using fp16.""")
 
