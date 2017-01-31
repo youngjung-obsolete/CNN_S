@@ -1,0 +1,1 @@
+python CNN_S_multi_gpu_train.py
