@@ -1,14 +1,14 @@
 ﻿import tensorflow as tf
 
 # General parameters.
-tf.app.flags.DEFINE_string('train_dir', '/home/cvpr-gb/hdd4TBmount/train_dir/CNN_S',
+tf.app.flags.DEFINE_string('train_dir', 'E:\\train_dir',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps', 1000000,
                             """Number of batches to run.""")
 
 # Flags governing the hardware employed for running TensorFlow.
-tf.app.flags.DEFINE_integer('num_gpus', 2,
+tf.app.flags.DEFINE_integer('num_gpus', 1,
                             """How many GPUs to use.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
@@ -41,23 +41,23 @@ tf.app.flags.DEFINE_string('pretrained_model_checkpoint_path', '',
 # These flags are not used. CNN_S.~~~ are used instead. // by Youngjung
 
 # Basic model parameters.
-tf.app.flags.DEFINE_integer('batch_size', 128,
-                                """Number of images to process in a batch.""")
-tf.app.flags.DEFINE_string('data_dir', '/home/cvpr-gb/hdd4TBmount/DataSet/ImageNet',
-                                """Path to the ImageNet data directory.""")
+tf.app.flags.DEFINE_integer('batch_size', 16,
+								"""Number of images to process in a batch.""")
+tf.app.flags.DEFINE_string('data_dir', 'D:\\DataSet\\ILSVRC2012\\ImageNet_TFRecord',
+								"""Path to the ImageNet data directory.""")
 tf.app.flags.DEFINE_boolean('use_fp16', False,
-                                """Train the model using fp16.""")
+								"""Train the model using fp16.""")
 
 # Dataset parameters
 tf.app.flags.DEFINE_string('subset', 'train',
-                                """Either 'train' or 'validation'.""")
+								"""Either 'train' or 'validation'.""")
 tf.app.flags.DEFINE_integer('image_size', 224,
-                                """Provide square images of this size.""")
-tf.app.flags.DEFINE_integer('num_preprocess_threads', 4,
-                                """Number of preprocessing threads per tower. """
-                                """Please make this a multiple of 4.""")
-tf.app.flags.DEFINE_integer('num_readers', 4,
-                                """Number of parallel readers during train.""")
+								"""Provide square images of this size.""")
+tf.app.flags.DEFINE_integer('num_preprocess_threads', 8,
+								"""Number of preprocessing threads per tower. """
+								"""Please make this a multiple of 4.""")
+tf.app.flags.DEFINE_integer('num_readers', 8,
+								"""Number of parallel readers during train.""")
 
 # Images are preprocessed asynchronously using multiple threads specified by
 # --num_preprocss_threads and the resulting processed images are stored in a
