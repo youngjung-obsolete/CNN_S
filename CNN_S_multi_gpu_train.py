@@ -47,6 +47,7 @@ import time
 import numpy as np
 from six.moves import xrange	# pylint: disable=redefined-builtin
 import tensorflow as tf
+slim = tf.contrib.slim
 
 import CNN_S
 from imagenet_data import *
@@ -134,8 +135,7 @@ def train( dataset ):
 	with tf.Graph().as_default(), tf.device('/cpu:0'):
 		# Create a variable to count the number of train() calls. This equals the
 		# number of batches processed * FLAGS.num_gpus.
-		global_step = tf.get_variable(
-				'global_step', [],
+		global_step = tf.get_variable('global_step', [],
 				initializer=tf.constant_initializer(0), trainable=False)
 
 		# Calculate the learning rate schedule.
@@ -225,12 +225,21 @@ def train( dataset ):
 
 		sess.run(init)
 
+		if FLAGS.pretrained_model_checkpoint_path:
+			#assert tf.gfile.Exists(FLAGS.pretrained_model_checkpoint_path)
+			variables_to_restore = slim.get_variables(scope="CNN_S")
+			restorer = tf.train.Saver(variables_to_restore)
+			#saver = tf.train.import_meta_graph('/tmp/model.ckpt.meta')
+			restorer.restore(sess, FLAGS.pretrained_model_checkpoint_path)
+			print('%s: Pre-trained model restored from %s' %(datetime.now(), FLAGS.pretrained_model_checkpoint_path))
+
 		# Start the queue runners.
 		tf.train.start_queue_runners(sess=sess)
 
 		summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 
-		for step in xrange(FLAGS.max_steps):
+		
+		for step in xrange(FLAGS.starting_step,FLAGS.max_steps):
 			start_time = time.time()
 			_, loss_value = sess.run([train_op, loss])
 			duration = time.time() - start_time
@@ -259,9 +268,6 @@ def train( dataset ):
 
 def main(argv=None):	# pylint: disable=unused-argument
 	dataset = ImageNetData( subset=FLAGS.subset )
-	if tf.gfile.Exists(FLAGS.train_dir):
-		tf.gfile.DeleteRecursively(FLAGS.train_dir)
-	tf.gfile.MakeDirs(FLAGS.train_dir)
 	train( dataset )
 
 

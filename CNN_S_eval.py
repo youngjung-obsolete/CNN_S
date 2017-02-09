@@ -61,7 +61,7 @@ tf.app.flags.DEFINE_boolean('run_once', False,
 							 """Whether to run eval only once.""")
 
 
-def eval_once(saver, summary_writer, top_k_op, summary_op):
+def eval_once(saver, summary_writer, top_k_op, k, summary_op):
 	"""Run Eval once.
 
 	Args:
@@ -104,7 +104,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
 
 			# Compute precision @ 1.
 			precision = true_count / total_sample_count
-			print('%s: precision @ 1 = %.3f' % (datetime.now(), precision))
+			print('%s: precision @ %d = %.3f' % (datetime.now(), k, precision))
 
 			summary = tf.Summary()
 			summary.ParseFromString(sess.run(summary_op))
@@ -129,7 +129,8 @@ def evaluate( dataset ):
 		logits, _ = CNN_S.inference(images, dataset.num_classes() )
 
 		# Calculate predictions.
-		top_k_op = tf.nn.in_top_k(logits, labels, 1)
+		top_1_op = tf.nn.in_top_k(logits, labels, 1)
+		top_5_op = tf.nn.in_top_k(logits, labels, 5)
 
 		# Restore the moving average version of the learned variables for eval.
 		variable_averages = tf.train.ExponentialMovingAverage(
@@ -144,7 +145,8 @@ def evaluate( dataset ):
 
 		while True:
 			print( "evaluating..." )
-			eval_once(saver, summary_writer, top_k_op, summary_op)
+			eval_once(saver, summary_writer, top_1_op, 1, summary_op)
+			eval_once(saver, summary_writer, top_5_op, 5, summary_op)
 			if FLAGS.run_once:
 				break
 			time.sleep(FLAGS.eval_interval_secs)

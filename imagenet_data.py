@@ -416,13 +416,11 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
 
 		# Create filename_queue
 		if train:
-			filename_queue = tf.train.string_input_producer(data_files,
-																											shuffle=True,
-																											capacity=16)
+			filename_queue = tf.train.string_input_producer(data_files, shuffle=True,
+																			capacity=16)
 		else:
-			filename_queue = tf.train.string_input_producer(data_files,
-																											shuffle=False,
-																											capacity=1)
+			filename_queue = tf.train.string_input_producer(data_files,shuffle=False,
+																			capacity=1)
 		if num_preprocess_threads is None:
 			num_preprocess_threads = FLAGS.num_preprocess_threads
 
