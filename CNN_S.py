@@ -121,7 +121,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
 		tf.add_to_collection('losses', weight_decay)
 	return var
 
-def inference( images, num_classesi, phase_train ):
+def inference( images, num_classes ):
 	"""Build the CNN_S model.
 
 	Args:
@@ -133,19 +133,14 @@ def inference( images, num_classesi, phase_train ):
 	end_points = {}
 	with tf.variable_scope('CNN_S') as sc:
 		end_points['conv1'] = slim.conv2d( images, 96, [7, 7], stride=2, padding='VALID', scope='conv1')
-		#end_points['lrn'] = tf.nn.local_response_normalization( end_points['conv1'] )
-		end_points['conv1_bn'] = batch_norm( end_points['conv1', 96, phase_train )
-		end_points['pool1'] = slim.max_pool2d(end_points['conv1_bn'], [3, 3], stride=3, scope='pool1')
+		end_points['lrn'] = tf.nn.local_response_normalization( end_points['conv1'] )
+		end_points['pool1'] = slim.max_pool2d(end_points['lrn'], [3, 3], stride=3, scope='pool1')
 		end_points['conv2'] = slim.conv2d( end_points['pool1'], 256, [5, 5], stride=1, padding='SAME', scope='conv2')
-		end_points['conv2_bn'] = batch_norm( end_points['conv2', 256, phase_train )
-		end_points['pool2'] = slim.max_pool2d(end_points['conv2_bn'], [2, 2], stride=2, scope='pool2')
+		end_points['pool2'] = slim.max_pool2d(end_points['conv2'], [2, 2], stride=2, scope='pool2')
 		end_points['conv3'] = slim.conv2d( end_points['pool2'], 512, [3, 3], stride=1, padding='SAME', scope='conv3')
-		end_points['conv3_bn'] = batch_norm( end_points['conv3', 512, phase_train )
-		end_points['conv4'] = slim.conv2d( end_points['conv3_bn'], 512, [3, 3], stride=1, padding='SAME', scope='conv4')
-		end_points['conv4_bn'] = batch_norm( end_points['conv4', 512, phase_train )
+		end_points['conv4'] = slim.conv2d( end_points['conv3'], 512, [3, 3], stride=1, padding='SAME', scope='conv4')
 		end_points['conv5'] = slim.conv2d( end_points['conv4'], 512, [3, 3], stride=1, padding='SAME', scope='conv5')
-		end_points['conv5_bn'] = batch_norm( end_points['conv5', 512, phase_train )
-		end_points['pool5'] = slim.max_pool2d(end_points['conv5_bn'], [3, 3], stride=3, scope='pool5')
+		end_points['pool5'] = slim.max_pool2d(end_points['conv5'], [3, 3], stride=3, scope='pool5')
 		# Use conv2d instead of fully_connected layers.
 		end_points['fc6'] = slim.conv2d(end_points['pool5'], 4096, [6, 6], padding='VALID', scope='fc6')
 		end_points['dropout6'] = slim.dropout(end_points['fc6'], scope='dropout6')
