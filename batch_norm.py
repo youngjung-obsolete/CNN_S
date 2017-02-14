@@ -1,4 +1,5 @@
 import tensorflow as tf
+import pdb
 
 def batch_norm(x, n_out, phase_train):
 	"""
@@ -21,9 +22,10 @@ def batch_norm(x, n_out, phase_train):
 		ema = tf.train.ExponentialMovingAverage(decay=0.5)
 
 		def mean_var_with_update():
-			ema_apply_op = ema.apply([batch_mean, batch_var])
-			with tf.control_dependencies([ema_apply_op]):
-				return tf.identity(batch_mean), tf.identity(batch_var)
+			with tf.variable_scope(tf.get_variable_scope(), reuse=False):
+				ema_apply_op = ema.apply([batch_mean, batch_var])
+				with tf.control_dependencies([ema_apply_op]):
+					return tf.identity(batch_mean), tf.identity(batch_var)
 
 		mean, var = tf.cond(phase_train,
 							mean_var_with_update,

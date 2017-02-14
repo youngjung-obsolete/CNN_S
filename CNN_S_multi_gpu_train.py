@@ -69,7 +69,7 @@ def tower_loss( scope, dataset ):
 	images, labels = distorted_inputs( dataset )
 
 	# Build inference Graph.
-	logits, end_points = CNN_S.inference(images, dataset.num_classes())
+	logits, end_points = CNN_S.inference(images, dataset.num_classes(), tf.constant(True))
 
 	# Build the portion of the Graph calculating the losses. Note that we will
 	# assemble the total_loss using a custom function below.
@@ -111,6 +111,7 @@ def average_gradients(tower_grads):
 		#	 ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
 		grads = []
 		for g, _ in grad_and_vars:
+			#pdb.set_trace()
 			# Add 0 dimension to the gradients to represent the tower.
 			expanded_g = tf.expand_dims(g, 0)
 

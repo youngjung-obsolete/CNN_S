@@ -43,6 +43,7 @@ import tarfile
 from six.moves import urllib
 import tensorflow as tf
 slim = tf.contrib.slim
+batch_norm = tf.contrib.layers.batch_norm
 import pdb
 
 FLAGS = tf.app.flags.FLAGS
@@ -50,7 +51,7 @@ import flags
 
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 0.9999		 # The decay to use for the moving average.
-NUM_EPOCHS_PER_DECAY = 1.0			# Epochs after which learning rate decays.
+NUM_EPOCHS_PER_DECAY = 4.0			# Epochs after which learning rate decays.
 LEARNING_RATE_DECAY_FACTOR = 0.1	# Learning rate decay factor.
 INITIAL_LEARNING_RATE = 0.1			 # Initial learning rate.
 
@@ -121,7 +122,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
 		tf.add_to_collection('losses', weight_decay)
 	return var
 
-def inference( images, num_classes ):
+def inference( images, num_classes, phase_train ):
 	"""Build the CNN_S model.
 
 	Args:
@@ -133,14 +134,19 @@ def inference( images, num_classes ):
 	end_points = {}
 	with tf.variable_scope('CNN_S') as sc:
 		end_points['conv1'] = slim.conv2d( images, 96, [7, 7], stride=2, padding='VALID', scope='conv1')
-		end_points['lrn'] = tf.nn.local_response_normalization( end_points['conv1'] )
-		end_points['pool1'] = slim.max_pool2d(end_points['lrn'], [3, 3], stride=3, scope='pool1')
+		#end_points['lrn'] = tf.nn.local_response_normalization( end_points['conv1'] )
+		end_points['conv1_bn'] = batch_norm( end_points['conv1'], scale=True, is_training=phase_train, scope='bn1')
+		end_points['pool1'] = slim.max_pool2d(end_points['conv1_bn'], [3, 3], stride=3, scope='pool1')
 		end_points['conv2'] = slim.conv2d( end_points['pool1'], 256, [5, 5], stride=1, padding='SAME', scope='conv2')
-		end_points['pool2'] = slim.max_pool2d(end_points['conv2'], [2, 2], stride=2, scope='pool2')
+		end_points['conv2_bn'] = batch_norm( end_points['conv2'], scale=True, is_training=phase_train, scope='bn2')
+		end_points['pool2'] = slim.max_pool2d(end_points['conv2_bn'], [2, 2], stride=2, scope='pool2')
 		end_points['conv3'] = slim.conv2d( end_points['pool2'], 512, [3, 3], stride=1, padding='SAME', scope='conv3')
-		end_points['conv4'] = slim.conv2d( end_points['conv3'], 512, [3, 3], stride=1, padding='SAME', scope='conv4')
-		end_points['conv5'] = slim.conv2d( end_points['conv4'], 512, [3, 3], stride=1, padding='SAME', scope='conv5')
-		end_points['pool5'] = slim.max_pool2d(end_points['conv5'], [3, 3], stride=3, scope='pool5')
+		end_points['conv3_bn'] = batch_norm( end_points['conv3'], scale=True, is_training=phase_train, scope='bn3')
+		end_points['conv4'] = slim.conv2d( end_points['conv3_bn'], 512, [3, 3], stride=1, padding='SAME', scope='conv4')
+		end_points['conv4_bn'] = batch_norm( end_points['conv4'], scale=True, is_training=phase_train, scope='bn4')
+		end_points['conv5'] = slim.conv2d( end_points['conv4_bn'], 512, [3, 3], stride=1, padding='SAME', scope='conv5')
+		end_points['conv5_bn'] = batch_norm( end_points['conv5'], scale=True, is_training=phase_train, scope='bn5')
+		end_points['pool5'] = slim.max_pool2d(end_points['conv5_bn'], [3, 3], stride=3, scope='pool5')
 		# Use conv2d instead of fully_connected layers.
 		end_points['fc6'] = slim.conv2d(end_points['pool5'], 4096, [6, 6], padding='VALID', scope='fc6')
 		end_points['dropout6'] = slim.dropout(end_points['fc6'], scope='dropout6')
