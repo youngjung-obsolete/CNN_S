@@ -137,7 +137,7 @@ def train( dataset ):
 		# Create a variable to count the number of train() calls. This equals the
 		# number of batches processed * FLAGS.num_gpus.
 		global_step = tf.get_variable('global_step', [],
-				initializer=tf.constant_initializer(0), trainable=False)
+				initializer=tf.constant_initializer(FLAGS.starting_step), trainable=False)
 
 		# Calculate the learning rate schedule.
 		num_batches_per_epoch = (dataset.num_examples_per_epoch() / FLAGS.batch_size)
