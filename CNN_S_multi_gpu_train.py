@@ -73,6 +73,9 @@ def tower_loss( scope, dataset ):
 	logits, end_points = CNN_S.inference(images, dataset.num_classes(),
 											phase_train= tf.constant(True))
 
+	# Calculate predictions
+	top_5_op = tf.nn.in_top_k(logits, labels, 5)
+
 	# Build the portion of the Graph calculating the losses. Note that we will
 	# assemble the total_loss using a custom function below.
 	_ = CNN_S.loss(logits, labels)
@@ -91,8 +94,7 @@ def tower_loss( scope, dataset ):
 		loss_name = re.sub('%s_[0-9]*/' % CNN_S.TOWER_NAME, '', l.op.name)
 		tf.summary.scalar(loss_name, l)
 
-	return total_loss 
-
+	return total_loss, top_5_op
 
 def average_gradients(tower_grads):
 	"""Calculate the average gradient for each shared variable across all towers.
@@ -113,7 +115,6 @@ def average_gradients(tower_grads):
 		#	 ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
 		grads = []
 		for g, _ in grad_and_vars:
-			#pdb.set_trace()
 			# Add 0 dimension to the gradients to represent the tower.
 			expanded_g = tf.expand_dims(g, 0)
 
@@ -131,6 +132,32 @@ def average_gradients(tower_grads):
 		grad_and_var = (grad, v)
 		average_grads.append(grad_and_var)
 	return average_grads
+
+def average_accuracy(tower_top_k_ops):
+	"""Calculate the average gradient for each shared variable across all towers.
+
+	Note that this function provides a synchronization point across all towers.
+
+	Args:
+		tower_grads: List of lists of (gradient, variable) tuples. The outer list
+			is over individual gradients. The inner list is over the gradient
+			calculation for each tower.
+	Returns:
+		 List of pairs of (gradient, variable) where the gradient has been averaged
+		 across all towers.
+	"""
+	average_top_k = None
+	for top_k_op in tower_top_k_ops:
+		# Average over the 'tower' dimension.
+		top_k = tf.to_float(top_k_op)
+		top_k = tf.concat(0,top_k)
+		top_k = tf.reduce_mean(top_k,0)
+
+		if average_top_k is None :
+			average_top_k = top_k
+		else:
+			average_top_k = average_top_k + top_k
+	return average_top_k/len(tower_top_k_ops)
 
 
 def train( dataset ):
@@ -166,13 +193,14 @@ def train( dataset ):
 
 		# Calculate the gradients for each model tower.
 		tower_grads = []
+		tower_top_5_ops = []
 		for i in xrange(FLAGS.num_gpus):
 			with tf.device('/gpu:%d' % i):
 				with tf.name_scope('%s_%d' % (CNN_S.TOWER_NAME, i)) as scope:
 					# Calculate the loss for one tower of the CIFAR model. This function
 					# constructs the entire CIFAR model but shares the variables across
 					# all towers.
-					loss = tower_loss(scope, dataset)
+					loss, top_5_op = tower_loss(scope, dataset)
 					#print( sess.run( toPrint_labels[0] ) )
 
 					# Reuse variables for the next tower.
@@ -187,9 +215,14 @@ def train( dataset ):
 					# Keep track of the gradients across all towers.
 					tower_grads.append(grads)
 
+					# Keep track of the top 5 ops across all towers.
+					tower_top_5_ops.append(top_5_op)
+
 		# We must calculate the mean of each gradient. Note that this is the
 		# synchronization point across all towers.
 		grads = average_gradients(tower_grads)
+
+		#accuracy = average_accuracy( tower_top_5_ops )
 
 		# Add a summary to track the learning rate.
 		summaries.append(tf.summary.scalar('learning_rate', lr))
@@ -199,7 +232,7 @@ def train( dataset ):
 			if grad is not None:
 				summaries.append(
 						tf.summary.histogram(var.op.name + '/gradients',
-																										grad))
+												grad))
 
 		# Apply the gradients to adjust the shared variables.
 		apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
@@ -244,19 +277,19 @@ def train( dataset ):
 		
 		for step in xrange(FLAGS.starting_step,FLAGS.max_steps):
 			start_time = time.time()
-			_, loss_value = sess.run([train_op, loss])
+			_, loss_val = sess.run([train_op, loss])
 			duration = time.time() - start_time
 
-			assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
+			assert not np.isnan(loss_val), 'Model diverged with loss = NaN'
 
 			if step % 10 == 0:
 				num_examples_per_step = FLAGS.batch_size * FLAGS.num_gpus
 				examples_per_sec = num_examples_per_step / duration
 				sec_per_batch = duration / FLAGS.num_gpus
 
-				format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
+				format_str = ('%s: step %d, loss = %.2f (%.1f ex/sec; %.3f '
 											'sec/batch)')
-				print (format_str % (datetime.now(), step, loss_value,
+				print (format_str % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), step, loss_val,
 														 examples_per_sec, sec_per_batch))
 
 			if step % 100 == 0:
