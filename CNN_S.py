@@ -165,7 +165,8 @@ def inference_woBN( images, num_classes, phase_train ):
 	pad_pooling = 'SAME'
 	with tf.variable_scope('CNN_S') as sc:
 		end_points['conv1'] = slim.conv2d( images, 96, [7, 7], stride=2, padding='VALID', scope='conv1')
-		end_points['pool1'] = slim.max_pool2d(end_points['conv1'], [3, 3], stride=3, scope='pool1', padding=pad_pooling )
+		end_points['lrn'] = tf.nn.local_response_normalization( end_points['conv1'] )
+		end_points['pool1'] = slim.max_pool2d(end_points['lrn'], [3, 3], stride=3, scope='pool1', padding=pad_pooling )
 		end_points['conv2'] = slim.conv2d( end_points['pool1'], 256, [5, 5], stride=1, padding='SAME', scope='conv2')
 		end_points['pool2'] = slim.max_pool2d(end_points['conv2'], [2, 2], stride=2, scope='pool2', padding=pad_pooling )
 		end_points['conv3'] = slim.conv2d( end_points['pool2'], 512, [3, 3], stride=1, padding='SAME', scope='conv3')
@@ -173,14 +174,13 @@ def inference_woBN( images, num_classes, phase_train ):
 		end_points['conv5'] = slim.conv2d( end_points['conv4'], 512, [3, 3], stride=1, padding='SAME', scope='conv5')
 		end_points['pool5'] = slim.max_pool2d(end_points['conv5'], [3, 3], stride=3, scope='pool5', padding=pad_pooling)
 		# Use conv2d instead of fully_connected layers.
-		end_points['fc6'] = slim.conv2d(end_points['pool5'], 4096, [6, 6], padding='VALID', scope='fc6')
+		end_points['fc6'] = slim.conv2d(end_points['pool5'], 4096, [7, 7], padding='VALID', scope='fc6')
 		end_points['dropout6'] = slim.dropout(end_points['fc6'], scope='dropout6')
 		end_points['fc7'] = slim.conv2d(end_points['dropout6'], 4096, [1, 1], scope='fc7' )
 		end_points['dropout7'] = slim.dropout(end_points['fc7'], scope='dropout7')
 		end_points['fc8'] = slim.conv2d(end_points['fc7'], num_classes, [1, 1], scope='fc8' )
 		net = end_points['fc8']
 		net = tf.squeeze(net, [1, 2], name='fc8/squeezed')
-	pdb.set_trace()
 	return net, end_points
 
 

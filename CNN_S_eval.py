@@ -128,7 +128,8 @@ def evaluate( dataset ):
 		# Build a Graph that computes the logits predictions from the
 		# inference model.
 		#logits, _ = CNN_S.inference_5x5_conv345(images, dataset.num_classes(),
-		logits, _ = CNN_S.inference(images, dataset.num_classes(),
+		#logits, _ = CNN_S.inference(images, dataset.num_classes(),
+		logits, _ = CNN_S.inference_woBN(images, dataset.num_classes(),
 											phase_train= tf.constant(False))
 
 		# Calculate predictions.
