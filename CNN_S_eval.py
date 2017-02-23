@@ -61,7 +61,7 @@ tf.app.flags.DEFINE_boolean('run_once', False,
 							 """Whether to run eval only once.""")
 
 
-def eval_once(saver, summary_writer, top_k_op, k, summary_op):
+def eval_once(saver, summary_writer, logits, top_k_op, k, summary_op):
 	"""Run Eval once.
 
 	Args:
@@ -98,6 +98,7 @@ def eval_once(saver, summary_writer, top_k_op, k, summary_op):
 			while step < num_iter and not coord.should_stop():
 				sys.stdout.write( "%d/%d\r"%(step,num_iter) )
 				sys.stdout.flush()
+				logit_result = sess.run([logits])
 				predictions = sess.run([top_k_op])
 				true_count += np.sum(predictions)
 				step += 1
@@ -126,8 +127,8 @@ def evaluate( dataset ):
 
 		# Build a Graph that computes the logits predictions from the
 		# inference model.
-		logits, _ = CNN_S.inference(images, dataset.num_classes(),
 		#logits, _ = CNN_S.inference_5x5_conv345(images, dataset.num_classes(),
+		logits, _ = CNN_S.inference(images, dataset.num_classes(),
 											phase_train= tf.constant(False))
 
 		# Calculate predictions.
@@ -147,15 +148,16 @@ def evaluate( dataset ):
 
 		while True:
 			print( "evaluating..." )
-			eval_once(saver, summary_writer, top_5_op, 5, summary_op)
-			eval_once(saver, summary_writer, top_1_op, 1, summary_op)
+			eval_once(saver, summary_writer, logits, top_5_op, 5, summary_op)
+			eval_once(saver, summary_writer, logits, top_1_op, 1, summary_op)
 			if FLAGS.run_once:
 				break
 			time.sleep(FLAGS.eval_interval_secs)
 
 
 def main(argv=None):	# pylint: disable=unused-argument
-	dataset = ImageNetData( subset="validation" )
+	#dataset = ImageNetData( subset="validation" )
+	dataset = ImageNetData( subset="train" )
 	tf.gfile.MakeDirs(FLAGS.eval_dir)
 	evaluate( dataset )
 

@@ -74,7 +74,7 @@ def tower_loss( scope, dataset ):
 											phase_train= tf.constant(True))
 
 	# Calculate predictions
-	top_5_op = tf.nn.in_top_k(logits, labels, 5)
+	top_5_op = tf.nn.in_top_k(logits, labels-1, 5)
 
 	# Build the portion of the Graph calculating the losses. Note that we will
 	# assemble the total_loss using a custom function below.
@@ -277,7 +277,8 @@ def train( dataset ):
 		
 		for step in xrange(FLAGS.starting_step,FLAGS.max_steps):
 			start_time = time.time()
-			_, loss_val = sess.run([train_op, loss])
+			_, loss_val, top_5_pred = sess.run([train_op, loss, top_5_op])
+			top_5_acc = np.sum(top_5_pred)*1.0/FLAGS.batch_size
 			duration = time.time() - start_time
 
 			assert not np.isnan(loss_val), 'Model diverged with loss = NaN'
@@ -287,9 +288,9 @@ def train( dataset ):
 				examples_per_sec = num_examples_per_step / duration
 				sec_per_batch = duration / FLAGS.num_gpus
 
-				format_str = ('%s: step %d, loss = %.2f (%.1f ex/sec; %.3f '
+				format_str = ('%s step %d, loss = %.2f, top5 = %.2f (%.1f ex/sec; %.3f '
 											'sec/batch)')
-				print (format_str % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), step, loss_val,
+				print (format_str % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), step, loss_val, top_5_acc,
 														 examples_per_sec, sec_per_batch))
 
 			if step % 100 == 0:
