@@ -47,6 +47,7 @@ import pdb
 import CNN_S
 from imagenet_data import *
 
+slim = tf.contrib.slim
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('eval_dir', '/home/cvpr-gb/hdd4TBmount/eval_dir/CNN_S',
@@ -127,18 +128,20 @@ def evaluate( dataset ):
 
 		# Build a Graph that computes the logits predictions from the
 		# inference model.
-		#logits, _ = CNN_S.inference_5x5_conv345(images, dataset.num_classes(),
-		logits, _ = CNN_S.inference(images, dataset.num_classes(),
-											phase_train= tf.constant(False))
+		#logits, _ = CNN_S.inference_5x5_conv345(
+		#logits, _ = CNN_S.inference_5x5_conv345_withPaddedPooling(
+		#logits, _ = CNN_S.inference(
+		logits, _ = CNN_S.inference_woBN(
+						images, dataset.num_classes(), phase_train= tf.constant(False))
 
 		# Calculate predictions.
 		top_1_op = tf.nn.in_top_k(logits, labels, 1)
 		top_5_op = tf.nn.in_top_k(logits, labels, 5)
 
 		# Restore the moving average version of the learned variables for eval.
-		variable_averages = tf.train.ExponentialMovingAverage(
-				CNN_S.MOVING_AVERAGE_DECAY)
-		variables_to_restore = variable_averages.variables_to_restore()
+		#variable_averages = tf.train.ExponentialMovingAverage(CNN_S.MOVING_AVERAGE_DECAY)
+		#variables_to_restore = variable_averages.variables_to_restore()
+		variables_to_restore = slim.get_variables(scope="CNN_S")
 		saver = tf.train.Saver(variables_to_restore)
 
 		# Build the summary operation based on the TF collection of Summaries.

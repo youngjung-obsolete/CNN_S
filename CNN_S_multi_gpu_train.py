@@ -69,9 +69,11 @@ def tower_loss( scope, dataset ):
 	images, labels = distorted_inputs( dataset )
 
 	# Build inference Graph.
-	#logits, end_points = CNN_S.inference_5x5_conv345(images, dataset.num_classes(),
-	logits, end_points = CNN_S.inference(images, dataset.num_classes(),
-											phase_train= tf.constant(True))
+	#logits, end_points = CNN_S.inference_5x5_conv345(
+	logits, end_points = CNN_S.inference_woBN(
+	#logits, end_points = CNN_S.inference(
+	#logits, end_points = CNN_S.inference_5x5_conv345_withPaddedPooling(
+							images, dataset.num_classes(), phase_train= tf.constant(True))
 
 	# Calculate predictions
 	top_5_op = tf.nn.in_top_k(logits, labels-1, 5)
